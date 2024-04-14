@@ -25,7 +25,7 @@ static int  _ack_time_limit;
 static struct gcode_modes old_gcode_modes;
 static struct gcode_modes new_gcode_modes;
 
-static void dbg(const char* line) {
+void dbg(const char* line) {
     char msg[100];
     strcpy(msg, "$Msg/Uart0=");
     strcat(msg, line);
