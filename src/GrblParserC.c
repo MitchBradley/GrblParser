@@ -87,9 +87,6 @@ const char* pos_to_cstr(pos_t val, int afterDecimal) {
 #ifdef E4_POS_T
     return e4_to_cstr(val, afterDecimal);
 #else
-    blah blah blah a;
-    dlfjasdl;
-    fj static char buffer[20];
     sprintf(buffer, "%.*f", afterDecimal, val);
     return buffer;
 #endif
