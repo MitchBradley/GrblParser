@@ -13,7 +13,8 @@
 // meters in one direction or microns in the other.  Either way, the
 // range is about 2 * 10^9 times the precision.
 
-typedef int e4_t;
+#include "stdint.h"
+typedef int32_t e4_t;
 
 // Ordinary integer arithmetic can be used for
 // addition and subtraction of E4 numbers.
