@@ -393,6 +393,33 @@ static void parse_status_report(char* field) {
     end_status_report();
 }
 
+static void parse_probe(char* body) {
+    // The report wrapper, already removed, is [PRB:...]
+    // The body for [PRB:1095.000,105.000,-49.880,0.000:1] is, for example,
+    //   1095.000,105.000,-49.880,0.000:1
+
+    char*  next;
+    size_t n_axis        = 0;
+    bool   probe_success = false;
+    pos_t  axes[MAX_N_AXIS];
+
+    // Separate position from success
+    if (!split(body, &next, '|')) {
+        // Return if split fails
+        return;
+    }
+
+    // Process positon
+    n_axis = parse_axes(body, axes);
+
+    // Process success flag
+    if (*next == '1') {
+        probe_success = true;
+    }
+
+    show_probe(axes, probe_success, n_axis);
+}
+
 // clang-format off
 static struct GCodeMode {
     const char*  tag;
@@ -570,6 +597,11 @@ static void parse_report() {
         return;
     }
 
+    if (is_report_type(_report, &body, "[PRB:", "]")) {
+        parse_probe(body);
+        return;
+    }
+
     handle_other(_report);
 }
 // Receive an incoming byte
@@ -631,6 +663,7 @@ void __attribute__((weak)) show_spindle_coolant(int spindle, bool flood, bool mi
 void __attribute__((weak)) show_feed_spindle(uint32_t feedrate, uint32_t spindle_speed) {}
 void __attribute__((weak)) show_overrides(override_percent_t feed_ovr, override_percent_t rapid_ovr, override_percent_t spindle_ovr) {}
 void __attribute__((weak)) show_linenum(int linenum) {}
+void __attribute__((weak)) show_probe(const pos_t* axes, const bool probe_success, size_t n_axis) {}
 
 // [GC: messages
 // If you want to handle GCode reports directly without having the data parsed
