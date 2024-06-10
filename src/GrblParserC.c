@@ -25,6 +25,10 @@ static int  _ack_time_limit;
 static struct gcode_modes old_gcode_modes;
 static struct gcode_modes new_gcode_modes;
 
+#define MAX_CONTROL_PINS 20
+static char control_pins[MAX_CONTROL_PINS + 1]     = { '\0' };
+static char new_control_pins[MAX_CONTROL_PINS + 1] = { '\0' };
+
 void dbg(const char* line) {
     char msg[100];
     strcpy(msg, "$Msg/Uart0=");
@@ -232,6 +236,7 @@ static void parse_status_report(char* field) {
     char* state = field;
 
     bool probe              = false;
+    bool new_probe          = false;
     bool limits[MAX_N_AXIS] = { false };
 
     pos_t axes[MAX_N_AXIS];
@@ -288,11 +293,14 @@ static void parse_status_report(char* field) {
         }
         if (strcmp(field, "Pn") == 0) {
             // PXxYy etc
-            char c;
+            char  c;
+            char* p = new_control_pins;
+            p[0]    = '\0';
+
             while ((c = *value++) != '\0') {
                 switch (c) {
                     case 'P':
-                        probe = true;
+                        new_probe = true;
                         break;
                     case 'X':
                         limits[X_AXIS] = true;
@@ -311,6 +319,12 @@ static void parse_status_report(char* field) {
                         break;
                     case 'C':
                         limits[C_AXIS] = true;
+                        break;
+                    default:
+                        if ((p - new_control_pins) < MAX_CONTROL_PINS) {
+                            *p++ = c;
+                            *p   = '\0';
+                        }
                         break;
                 }
                 continue;
@@ -388,6 +402,14 @@ static void parse_status_report(char* field) {
     show_feed_spindle(fs[0], fs[1]);
     if (has_override) {
         show_overrides(frs[0], frs[1], frs[2]);
+    }
+    if (new_probe != probe) {
+        probe = new_probe;
+        show_probe_pin(probe);
+    }
+    if (strcmp(new_control_pins, control_pins) != 0) {
+        strcpy(control_pins, new_control_pins);
+        show_control_pins(control_pins);
     }
 
     end_status_report();
@@ -664,6 +686,8 @@ void __attribute__((weak)) show_feed_spindle(uint32_t feedrate, uint32_t spindle
 void __attribute__((weak)) show_overrides(override_percent_t feed_ovr, override_percent_t rapid_ovr, override_percent_t spindle_ovr) {}
 void __attribute__((weak)) show_linenum(int linenum) {}
 void __attribute__((weak)) show_probe(const pos_t* axes, const bool probe_success, size_t n_axis) {}
+void __attribute__((weak)) show_probe_pin(bool on) {}
+void __attribute__((weak)) show_control_pins(const char* pins) {}
 
 // [GC: messages
 // If you want to handle GCode reports directly without having the data parsed
