@@ -291,11 +291,11 @@ static void parse_status_report(char* field) {
             parse_integers(value, fs, 2);  // feed in [0], spindle in [1]
             continue;
         }
+        new_control_pins[0] = '\0';  // No Pn field if all pins are off
         if (strcmp(field, "Pn") == 0) {
             // PXxYy etc
             char  c;
             char* p = new_control_pins;
-            p[0]    = '\0';
 
             while ((c = *value++) != '\0') {
                 switch (c) {
