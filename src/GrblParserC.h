@@ -84,6 +84,19 @@ struct gcode_modes {
     feedrate_t  feed;
 };
 
+typedef enum {
+    G54  = 1,
+    G55  = 2,
+    G56  = 3,
+    G57  = 4,
+    G58  = 5,
+    G59  = 6,
+    G28  = 7,
+    G30  = 8,
+    G92  = 9,
+} offset_t;
+//char* offset_names[9] = {"G54", "G55", "G56", "G57", "G58", "G59", "G28", "G30", "G28"};
+
 // Wait until FluidNC is ready
 void fnc_wait_ready();
 
@@ -166,6 +179,7 @@ extern void show_spindle_coolant(int spindle, bool flood, bool mist);
 extern void show_feed_spindle(uint32_t feedrate, uint32_t spindle_speed);
 extern void show_overrides(override_percent_t feed_ovr, override_percent_t rapid_ovr, override_percent_t spindle_ovr);
 extern void show_probe(const pos_t* axes, const bool probe_success, size_t n_axis);
+extern void show_offset(offset_t offset, const pos_t* axes, size_t n_axis);
 extern void show_probe_pin(bool on);
 extern void show_control_pins(const char* pins);
 
