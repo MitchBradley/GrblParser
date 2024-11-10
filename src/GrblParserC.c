@@ -441,6 +441,14 @@ static void parse_probe(char* body) {
 
     show_probe(axes, probe_success, n_axis);
 }
+static void parse_offset(offset_t offset, char* body) {
+    size_t n_axis        = 0;
+    pos_t  axes[MAX_N_AXIS];
+
+    n_axis = parse_axes(body, axes);
+
+    show_offset(offset, axes, n_axis);
+}
 
 // clang-format off
 static struct GCodeMode {
@@ -624,6 +632,43 @@ static void parse_report() {
         return;
     }
 
+    if (is_report_type(_report, &body, "[G54:", "]")) {
+        parse_offset(G54,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G55:", "]")) {
+        parse_offset(G55,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G56:", "]")) {
+        parse_offset(G56,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G57:", "]")) {
+        parse_offset(G57,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G58:", "]")) {
+        parse_offset(G58,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G59:", "]")) {
+        parse_offset(G59,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G28:", "]")) {
+        parse_offset(G28,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G30:", "]")) {
+        parse_offset(G30,body);
+        return;
+    }
+    if (is_report_type(_report, &body, "[G92:", "]")) {
+        parse_offset(G92,body);
+        return;
+    }
+
     handle_other(_report);
 }
 // Receive an incoming byte
@@ -686,6 +731,7 @@ void __attribute__((weak)) show_feed_spindle(uint32_t feedrate, uint32_t spindle
 void __attribute__((weak)) show_overrides(override_percent_t feed_ovr, override_percent_t rapid_ovr, override_percent_t spindle_ovr) {}
 void __attribute__((weak)) show_linenum(int linenum) {}
 void __attribute__((weak)) show_probe(const pos_t* axes, const bool probe_success, size_t n_axis) {}
+void __attribute__((weak)) show_offset(offset_t offset, const pos_t* axes, size_t n_axis) {}
 void __attribute__((weak)) show_probe_pin(bool on) {}
 void __attribute__((weak)) show_control_pins(const char* pins) {}
 
