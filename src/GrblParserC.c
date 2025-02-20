@@ -580,96 +580,96 @@ void fnc_realtime(realtime_cmd_t c) {
     fnc_putchar((uint8_t)c);
 }
 
-static void parse_report() {
-    if (*_report == '\0') {
+static void parse_grbl_report(char* report) {
+    if (*report == '\0') {
         return;
     }
 
-    if (strcmp(_report, "ok") == 0) {
+    if (strcmp(report, "ok") == 0) {
         _ackwait = false;
         show_ok();
         return;
     }
 
     char* body;
-    if (is_report_type(_report, &body, "<", ">")) {
+    if (is_report_type(report, &body, "<", ">")) {
         parse_status_report(body);
         return;
     }
-    if (is_report_type(_report, &body, "[GC:", "]")) {
+    if (is_report_type(report, &body, "[GC:", "]")) {
         parse_gcode_report(body);
         return;
     }
-    if (is_report_type(_report, &body, "[MSG:", "]")) {
+    if (is_report_type(report, &body, "[MSG:", "]")) {
         parse_msg(body);
         return;
     }
-    if (is_report_type(_report, &body, "[JSON:", "]")) {
+    if (is_report_type(report, &body, "[JSON:", "]")) {
         handle_json(body);
         return;
     }
-    if (is_report_type(_report, &body, "[VER:", "]")) {
+    if (is_report_type(report, &body, "[VER:", "]")) {
         parse_version_report(body);
         return;
     }
-    if (is_report_type(_report, &body, "error:", "")) {
+    if (is_report_type(report, &body, "error:", "")) {
         _ackwait = false;
         parse_error(body);
         return;
     }
-    if (is_report_type(_report, &body, "ALARM:", "")) {
+    if (is_report_type(report, &body, "ALARM:", "")) {
         parse_alarm(body);
         return;
     }
 
-    if (is_report_type(_report, &body, "Grbl ", "")) {
+    if (is_report_type(report, &body, "Grbl ", "")) {
         parse_signon(body);
         return;
     }
 
-    if (is_report_type(_report, &body, "[PRB:", "]")) {
+    if (is_report_type(report, &body, "[PRB:", "]")) {
         parse_probe(body);
         return;
     }
 
-    if (is_report_type(_report, &body, "[G54:", "]")) {
+    if (is_report_type(report, &body, "[G54:", "]")) {
         parse_offset(G54,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G55:", "]")) {
+    if (is_report_type(report, &body, "[G55:", "]")) {
         parse_offset(G55,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G56:", "]")) {
+    if (is_report_type(report, &body, "[G56:", "]")) {
         parse_offset(G56,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G57:", "]")) {
+    if (is_report_type(report, &body, "[G57:", "]")) {
         parse_offset(G57,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G58:", "]")) {
+    if (is_report_type(report, &body, "[G58:", "]")) {
         parse_offset(G58,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G59:", "]")) {
+    if (is_report_type(report, &body, "[G59:", "]")) {
         parse_offset(G59,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G28:", "]")) {
+    if (is_report_type(report, &body, "[G28:", "]")) {
         parse_offset(G28,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G30:", "]")) {
+    if (is_report_type(report, &body, "[G30:", "]")) {
         parse_offset(G30,body);
         return;
     }
-    if (is_report_type(_report, &body, "[G92:", "]")) {
+    if (is_report_type(report, &body, "[G92:", "]")) {
         parse_offset(G92,body);
         return;
     }
 
-    handle_other(_report);
+    handle_other(report);
 }
 // Receive an incoming byte
 void collect(uint8_t data) {
@@ -678,7 +678,7 @@ void collect(uint8_t data) {
         return;
     }
     if (c == '\n') {
-        parse_report();
+        handle_report(_report);
         _report[0]  = '\0';
         _report_len = 0;
         return;
@@ -687,10 +687,56 @@ void collect(uint8_t data) {
     _report[_report_len]   = '\0';
 }
 
+int utf8_state = 0;
+uint32_t utf8_num = 0;
 void fnc_poll() {
-    int c;
-    if ((c = fnc_getchar()) >= 0) {
-        collect(c);
+    int ch;
+    while ((ch = fnc_getchar()) >= 0) {
+        if (utf8_state) {
+            if ((ch & 0xc0) != 0x80) {
+                // Trailing bytes in a sequence must have 10 in the two high bits
+                utf8_state = 0;
+                utf8_num = 0;
+                continue;  // Discard
+            }
+            // Otherwise, ch is between 0x80 and 0xbf, so it is the
+            // second, third, or fourth byte of a UTF8 sequence
+            utf8_state--;
+            utf8_num = (utf8_num << 6) | (ch & 0x3f);
+            if (utf8_state) {
+                continue;
+            }
+            handle_extended_command(utf8_num);
+            continue;
+        }
+        // After this point, utf8_state is zero
+        if (ch < 0x80) {
+            // 1-byte sequence - No decoding necessary
+            collect(ch);
+            continue;
+        }
+        if (ch >= 0xf8) {
+            // Invalid start byte
+            continue;
+        }
+        if (ch >= 0xf0) {
+            utf8_state = 3;  // Start of 4-byte sequence
+            utf8_num   = ch & 0x07;
+            continue;
+        }
+        if (ch >= 0xe0) {
+            utf8_state = 2;  // Start of 3-byte sequence
+            utf8_num   = ch & 0x0f;
+            continue;
+        }
+        if (ch >= 0xc0) {
+            utf8_state = 1;  // Start of 2-byte sequence
+            utf8_num   = ch & 0x1f;
+            continue;
+        }
+        // Otherwise we received a continuation byte with the two high bits == 10,
+        // i.e. ch between 0x80 and 0xbf, when not in the midst of a sequence
+        continue;
     }
     poll_extra();
 }
@@ -708,6 +754,10 @@ void __attribute__((weak)) show_alarm(int alarm) {}
 void __attribute__((weak)) show_error(int error) {}
 void __attribute__((weak)) show_ok() {}
 void __attribute__((weak)) show_timeout() {}
+
+void __attribute__((weak)) handle_report(char* report) { parse_grbl_report(report); }
+
+void __attribute__((weak)) handle_extended_command(uint32_t cmd) { }
 
 // Handle [MSG: messages
 // If you do not override it, it will handle IO expander messages.

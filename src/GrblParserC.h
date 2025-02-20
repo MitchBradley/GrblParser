@@ -149,10 +149,14 @@ extern void show_alarm(int alarm);
 extern void show_ok();
 extern void show_timeout();
 
+extern void handle_extended_command(uint32_t cmd);
 extern void expander_ack();
 extern void expander_nak(const char* msg);
 
 extern void expander_pin_msg(uint8_t pin_num, bool active);
+
+// Top-level report handler that can be overridden
+extern void handle_report(char* report);
 
 // [MSG: messages
 // General handler that can be overridden
