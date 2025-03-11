@@ -172,7 +172,7 @@ extern void handle_signon(char* version, char* extra);
 // Handle anything not otherwise recognized
 extern void handle_other(char* line);
 
-extern uint32_t parse_io_mode(const char* params);
+extern uint32_t parse_io_mode(char* params);
 
 // Data parsed from <...> status reports
 extern void show_limits(bool probe, const bool* limits, size_t n_axis);
