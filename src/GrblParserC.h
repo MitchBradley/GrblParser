@@ -66,6 +66,7 @@ typedef enum {
     PinHigh = 0xB1,  // Start of two-character sequence; second is event number
     ACK     = 0xB2,  // IO Expander accepted command
     NAK     = 0xB3,  // IO Expander rejected command
+    RST     = 0xB4,  // IO Expander restarted
 } realtime_cmd_t;
 
 struct gcode_modes {
